@@ -54,7 +54,7 @@ def convert_to_jawi(text):
 
         return result
 
-    return re.sub(pattern, replace, text)
+    return re.sub(pattern, replace_word, text)
 
 
 @app.route("/")
