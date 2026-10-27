@@ -4,53 +4,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rumi ke Jawi</title>
+<title>JawiVenture</title>
 
 <style>
+* { box-sizing: border-box; }
+
 body {
     font-family: Arial, sans-serif;
     background: #f3f6f9;
     margin: 0;
-    padding: 25px 15px;
+    padding: 20px 14px;
     color: #263746;
 }
 
 .container {
-    max-width: 650px;
-    margin: 30px auto;
+    max-width: 700px;
+    margin: 20px auto;
+    padding: 24px;
     background: white;
-    padding: 25px;
     border-radius: 18px;
     box-shadow: 0 5px 20px #00000012;
-    box-sizing: border-box;
 }
 
 h1 {
     text-align: center;
     color: #176b57;
+    margin-bottom: 8px;
 }
 
 .subtitle {
     text-align: center;
     color: #657786;
+    line-height: 1.5;
 }
 
 label {
     display: block;
-    margin-top: 22px;
-    margin-bottom: 8px;
+    margin: 20px 0 8px;
     font-weight: bold;
 }
 
-textarea {
-    box-sizing: border-box;
+select, textarea {
     width: 100%;
-    min-height: 130px;
-    padding: 15px;
+    padding: 13px;
     border: 1px solid #ccd6df;
     border-radius: 10px;
-    font-size: 18px;
+    font: inherit;
+}
+
+textarea {
+    min-height: 130px;
     resize: vertical;
+    font-size: 18px;
 }
 
 #output {
@@ -61,9 +66,9 @@ textarea {
 }
 
 button {
-    padding: 12px 18px;
-    margin: 12px 5px 0 0;
-    border: none;
+    padding: 12px 16px;
+    margin: 10px 5px 0 0;
+    border: 0;
     border-radius: 9px;
     background: #176b57;
     color: white;
@@ -77,120 +82,251 @@ button.secondary {
 }
 
 button:disabled {
-    opacity: 0.6;
+    opacity: .6;
     cursor: wait;
 }
 
 #message {
     color: #657786;
     font-size: 14px;
-    margin-top: 15px;
+    line-height: 1.5;
+}
+
+#suggestions {
+    margin-top: 16px;
+    line-height: 1.8;
+}
+
+.suggestion {
+    display: inline-block;
+    margin: 4px;
+    padding: 7px 10px;
+    background: #e6efec;
+    color: #176b57;
+    border-radius: 7px;
+    cursor: pointer;
+    border: 1px solid #c7ded5;
+}
+
+.note {
+    font-size: 13px;
+    color: #657786;
+}
+
+@media (max-width: 480px) {
+    .container { padding: 18px; }
+    button { margin-right: 3px; }
 }
 </style>
 </head>
 
 <body>
 <main class="container">
-    <h1>Rumi → Jawi</h1>
-
+    <h1>JawiVenture</h1>
     <p class="subtitle">
-        Penukar tulisan Rumi kepada tulisan Jawi
+        Penukar tulisan Rumi dan Jawi serta penyemak ejaan
     </p>
 
-    <label for="input">Masukkan teks Rumi</label>
+    <label for="mode">Pilih fungsi</label>
+    <select id="mode" onchange="updateMode()">
+        <option value="jawi">Rumi → Jawi</option>
+        <option value="rumi">Jawi → Rumi</option>
+        <option value="spell">Semak ejaan Rumi</option>
+    </select>
+
+    <label for="input" id="inputLabel">Masukkan teks Rumi</label>
     <textarea id="input"
         placeholder="Taip teks Bahasa Melayu di sini..."></textarea>
 
-    <button id="convertButton" onclick="convertText()">
+    <button id="mainButton" onclick="processText()">
         Tukar ke Jawi
     </button>
+    <button class="secondary" onclick="clearText()">Padam</button>
 
-    <button class="secondary" onclick="clearText()">
-        Padam
-    </button>
-
-    <label for="output">Hasil tulisan Jawi</label>
+    <label for="output" id="outputLabel">Hasil tulisan Jawi</label>
     <textarea id="output" readonly
-        placeholder="Hasil Jawi akan dipaparkan di sini..."></textarea>
+        placeholder="Hasil akan dipaparkan di sini..."></textarea>
 
-    <button class="secondary" onclick="copyText()">
-        Salin Jawi
-    </button>
+    <button class="secondary" onclick="copyText()">Salin hasil</button>
 
+    <div id="suggestions"></div>
     <p id="message" role="status" aria-live="polite">
-        Sila masukkan teks Bahasa Melayu.
+        Selamat datang ke JawiVenture!
+    </p>
+
+    <p class="note">
+        Cadangan ejaan berdasarkan kamus. Sila semak hasil sebelum digunakan.
     </p>
 </main>
 
 <script>
-async function convertText() {
-    const input = document.getElementById("input").value.trim();
-    const output = document.getElementById("output");
-    const message = document.getElementById("message");
-    const button = document.getElementById("convertButton");
+const input = document.getElementById("input");
+const output = document.getElementById("output");
+const message = document.getElementById("message");
+const mode = document.getElementById("mode");
+const mainButton = document.getElementById("mainButton");
+const suggestionsBox = document.getElementById("suggestions");
 
-    if (!input) {
-        message.textContent = "Sila masukkan teks Rumi dahulu.";
+function updateMode() {
+    suggestionsBox.replaceChildren();
+    output.value = "";
+
+    if (mode.value === "jawi") {
+        input.dir = "ltr";
+        input.placeholder = "Taip teks Rumi di sini...";
+        document.getElementById("inputLabel").textContent =
+            "Masukkan teks Rumi";
+        document.getElementById("outputLabel").textContent =
+            "Hasil tulisan Jawi";
+        output.dir = "rtl";
+        mainButton.textContent = "Tukar ke Jawi";
+
+    } else if (mode.value === "rumi") {
+        input.dir = "rtl";
+        input.placeholder = "اكتب النص الجاوي هنا";
+        document.getElementById("inputLabel").textContent =
+            "Masukkan teks Jawi";
+        document.getElementById("outputLabel").textContent =
+            "Hasil tulisan Rumi";
+        output.dir = "ltr";
+        mainButton.textContent = "Tukar ke Rumi";
+
+    } else {
+        input.dir = "ltr";
+        input.placeholder = "Taip ayat Bahasa Melayu untuk disemak...";
+        document.getElementById("inputLabel").textContent =
+            "Teks yang hendak disemak";
+        document.getElementById("outputLabel").textContent =
+            "Teks selepas pembetulan";
+        output.dir = "ltr";
+        mainButton.textContent = "Semak ejaan";
+    }
+
+    message.textContent = "Sila masukkan teks.";
+}
+
+async function processText() {
+    const text = input.value.trim();
+
+    if (!text) {
+        message.textContent = "Sila masukkan teks dahulu.";
         return;
     }
 
-    button.disabled = true;
-    message.textContent = "Sedang menukar teks...";
-    
+    const endpoint = {
+        jawi: "/convert",
+        rumi: "/reverse",
+        spell: "/spellcheck"
+    }[mode.value];
+
+    mainButton.disabled = true;
+    suggestionsBox.replaceChildren();
+    message.textContent = "Sedang memproses...";
+
     try {
-        const response = await fetch("/convert", {
+        const response = await fetch(endpoint, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ text: input })
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({text})
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || "Penukaran gagal.");
+            throw new Error(data.error || "Permintaan gagal.");
         }
 
-        output.value = data.jawi;
-        message.textContent =
-            "Penukaran selesai. Sila semak ejaan Jawi.";
+        if (mode.value === "spell") {
+            output.value = text;
+            showSuggestions(data.suggestions || []);
+        } else {
+            output.value = data.result;
+        }
+
     } catch (error) {
-        message.textContent =
-            "Tidak dapat menukar teks. Sila cuba lagi.";
         console.error(error);
+        message.textContent =
+            "Tidak berjaya. Periksa sambungan dan log server.";
     } finally {
-        button.disabled = false;
+        mainButton.disabled = false;
     }
 }
 
+function showSuggestions(items) {
+    suggestionsBox.replaceChildren();
+
+    if (items.length === 0) {
+        message.textContent =
+            "Tiada perkataan mencurigakan ditemui dalam kamus. Ini bukan jaminan semua ejaan betul.";
+        return;
+    }
+
+    message.textContent =
+        "Perkataan yang mungkin perlu disemak. Klik cadangan untuk menggantikannya:";
+
+    items.forEach(item => {
+        const section = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = item.word + ": ";
+        section.appendChild(title);
+
+        item.suggestions.forEach(candidate => {
+            const button = document.createElement("button");
+            button.className = "suggestion";
+            button.type = "button";
+            button.textContent = candidate;
+
+            button.addEventListener("click", () => {
+                replaceWord(item.word, candidate);
+            });
+
+            section.appendChild(button);
+        });
+
+        suggestionsBox.appendChild(section);
+    });
+}
+
+function replaceWord(original, replacement) {
+    const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp("\\b" + escaped + "\\b", "gi");
+
+    input.value = input.value.replace(pattern, match => {
+        if (match === match.toUpperCase()) {
+            return replacement.toUpperCase();
+        }
+        if (match[0] === match[0].toUpperCase()) {
+            return replacement[0].toUpperCase() + replacement.slice(1);
+        }
+        return replacement;
+    });
+
+    output.value = input.value;
+    message.textContent =
+        "Cadangan digunakan. Tekan Semak ejaan sekali lagi untuk menyemak semula.";
+}
+
 function clearText() {
-    document.getElementById("input").value = "";
-    document.getElementById("output").value = "";
-    document.getElementById("message").textContent =
-        "Ruangan telah dikosongkan.";
+    input.value = "";
+    output.value = "";
+    suggestionsBox.replaceChildren();
+    message.textContent = "Ruangan telah dikosongkan.";
 }
 
 async function copyText() {
-    const output = document.getElementById("output");
-    const message = document.getElementById("message");
-
     if (!output.value) {
-        message.textContent = "Tiada teks Jawi untuk disalin.";
+        message.textContent = "Tiada teks untuk disalin.";
         return;
     }
 
     try {
         await navigator.clipboard.writeText(output.value);
-        message.textContent = "Teks Jawi berjaya disalin!";
+        message.textContent = "Teks berjaya disalin!";
     } catch {
         output.focus();
         output.select();
-
-        const copied = document.execCommand("copy");
-        message.textContent = copied
-            ? "Teks Jawi berjaya disalin!"
-            : "Sila salin teks yang dipilih secara manual.";
+        message.textContent =
+            "Teks dipilih. Salin menggunakan fungsi Copy pada peranti.";
     }
 }
 </script>
