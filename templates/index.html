@@ -1,0 +1,198 @@
+
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rumi ke Jawi</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f3f6f9;
+    margin: 0;
+    padding: 25px 15px;
+    color: #263746;
+}
+
+.container {
+    max-width: 650px;
+    margin: 30px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 18px;
+    box-shadow: 0 5px 20px #00000012;
+    box-sizing: border-box;
+}
+
+h1 {
+    text-align: center;
+    color: #176b57;
+}
+
+.subtitle {
+    text-align: center;
+    color: #657786;
+}
+
+label {
+    display: block;
+    margin-top: 22px;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 130px;
+    padding: 15px;
+    border: 1px solid #ccd6df;
+    border-radius: 10px;
+    font-size: 18px;
+    resize: vertical;
+}
+
+#output {
+    direction: rtl;
+    text-align: right;
+    font-size: 25px;
+    background: #f8faf9;
+}
+
+button {
+    padding: 12px 18px;
+    margin: 12px 5px 0 0;
+    border: none;
+    border-radius: 9px;
+    background: #176b57;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+button.secondary {
+    background: #e6efec;
+    color: #176b57;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+#message {
+    color: #657786;
+    font-size: 14px;
+    margin-top: 15px;
+}
+</style>
+</head>
+
+<body>
+<main class="container">
+    <h1>Rumi → Jawi</h1>
+
+    <p class="subtitle">
+        Penukar tulisan Rumi kepada tulisan Jawi
+    </p>
+
+    <label for="input">Masukkan teks Rumi</label>
+    <textarea id="input"
+        placeholder="Taip teks Bahasa Melayu di sini..."></textarea>
+
+    <button id="convertButton" onclick="convertText()">
+        Tukar ke Jawi
+    </button>
+
+    <button class="secondary" onclick="clearText()">
+        Padam
+    </button>
+
+    <label for="output">Hasil tulisan Jawi</label>
+    <textarea id="output" readonly
+        placeholder="Hasil Jawi akan dipaparkan di sini..."></textarea>
+
+    <button class="secondary" onclick="copyText()">
+        Salin Jawi
+    </button>
+
+    <p id="message" role="status" aria-live="polite">
+        Sila masukkan teks Bahasa Melayu.
+    </p>
+</main>
+
+<script>
+async function convertText() {
+    const input = document.getElementById("input").value.trim();
+    const output = document.getElementById("output");
+    const message = document.getElementById("message");
+    const button = document.getElementById("convertButton");
+
+    if (!input) {
+        message.textContent = "Sila masukkan teks Rumi dahulu.";
+        return;
+    }
+
+    button.disabled = true;
+    message.textContent = "Sedang menukar teks...";
+    
+    try {
+        const response = await fetch("/convert", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ text: input })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Penukaran gagal.");
+        }
+
+        output.value = data.jawi;
+        message.textContent =
+            "Penukaran selesai. Sila semak ejaan Jawi.";
+    } catch (error) {
+        message.textContent =
+            "Tidak dapat menukar teks. Sila cuba lagi.";
+        console.error(error);
+    } finally {
+        button.disabled = false;
+    }
+}
+
+function clearText() {
+    document.getElementById("input").value = "";
+    document.getElementById("output").value = "";
+    document.getElementById("message").textContent =
+        "Ruangan telah dikosongkan.";
+}
+
+async function copyText() {
+    const output = document.getElementById("output");
+    const message = document.getElementById("message");
+
+    if (!output.value) {
+        message.textContent = "Tiada teks Jawi untuk disalin.";
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(output.value);
+        message.textContent = "Teks Jawi berjaya disalin!";
+    } catch {
+        output.focus();
+        output.select();
+
+        const copied = document.execCommand("copy");
+        message.textContent = copied
+            ? "Teks Jawi berjaya disalin!"
+            : "Sila salin teks yang dipilih secara manual.";
+    }
+}
+</script>
+</body>
+</html>
